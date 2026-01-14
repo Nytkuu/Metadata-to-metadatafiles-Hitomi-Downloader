@@ -1,0 +1,64 @@
+#coding: utf8
+#title: ComicInfo.xml After Task Finished
+#author: nytkuu
+
+from utils import Hook
+import os
+
+languages = {
+    "Japanese": "ja", "Chinese": "zh", "Korean": "ko", "Burmese": "my", "Thai": "th", "Persian": "fa",
+    "Arabic": "ar", "Hebrew": "he", "Ukrainian": "uk", "Russian": "ru", "Mongolian": "mn", "Bulgarian": "bg",
+    "Greek": "el", "Turkish": "tr", "Vietnamese": "vi", "Tagalog": "tl", "Swedish": "sv", "Finnish": "fi",
+    "Serbian": "sr", "Slovak": "sk", "Albanian": "sq", "Romanian": "ro", "Portuguese": "pt", "Polish": "pl",
+    "Norwegian": "nb", "Dutch": "nl", "Hungarian": "hu", "Latin": "la", "Italian": "it", "Icelandic": "is",
+    "Hindi": "hi", "French": "fr", "Esperanto": "eo", "Spanish": "es", "English": "en", "Estonian": "et",
+    "German": "de", "Danish": "da", "Czech": "cs", "Cebuano": "ceb", "Catalan": "ca", "Javanese": "jv",
+    "Indonesian": "id", "N/A": "N/A"
+}
+
+def write_comic_info(path, **kwargs):
+    with open(path, "w", encoding='utf-8') as f:
+        f.write("<?xml version='1.0' encoding='UTF-8'?>\n<ComicInfo xmlns:xsd='http://www.w3.org/2001/XMLSchema' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>\n")
+        for key, value in kwargs.items():
+            value = str(value).replace("&", "&amp;") \
+                        .replace("<", "&lt;") \
+                        .replace(">", "&gt;") \
+                        .replace('"', "&quot;") \
+                        .replace("'", "&apos;")
+            f.write(f"\t<{key}>{value}</{key}>\n")
+        f.write("</ComicInfo>")
+
+@Hook.task_finished('ComicInfo.xml')
+def hook_comic_info(cw):
+    if cw.type not in ('hitomi', 'ehen') or cw.gal is None:
+        return
+
+    data = list(line.split(': ', 1)[1].strip() for line in str(cw.gal).strip().split('\n') if ': ' in line)
+    id_, title, artists, groups, type_, series, characters, tags, language = data[:9]
+
+    if type_ == 'anime':
+        return
+
+    pages_total = int([i for i in cw.msgs if i.startswith('imgs:')][0].split(': ')[1])
+    pages_dir = len(os.listdir(cw.dir))
+
+    if pages_total != pages_dir:
+        return
+
+    language_iso = languages.get(language, "")
+
+    comic_info_dir = os.path.join(cw.dir, "ComicInfo.xml")
+    write_comic_info(
+        comic_info_dir,
+        Title=title,
+        Series=series,
+        AlternateNumber=id_,
+        Penciller=artists,
+        Web=cw.url,
+        PageCount=pages_total,
+        LanguageISO=language_iso,
+        Format=type_,
+        Characters=characters,
+        Teams=groups,
+        Tags=tags,
+    )
