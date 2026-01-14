@@ -16,17 +16,20 @@ languages = {
     "Indonesian": "id", "N/A": "N/A"
 }
 
+img_ext = (".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp")
+
 def write_comic_info(path, **kwargs):
-    with open(path, "w", encoding='utf-8') as f:
-        f.write("<?xml version='1.0' encoding='UTF-8'?>\n<ComicInfo xmlns:xsd='http://www.w3.org/2001/XMLSchema' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>\n")
-        for key, value in kwargs.items():
-            value = str(value).replace("&", "&amp;") \
-                        .replace("<", "&lt;") \
-                        .replace(">", "&gt;") \
-                        .replace('"', "&quot;") \
-                        .replace("'", "&apos;")
-            f.write(f"\t<{key}>{value}</{key}>\n")
-        f.write("</ComicInfo>")
+    if not os.path.exists(path):
+        with open(path, "w", encoding='utf-8') as f:
+            f.write("<?xml version='1.0' encoding='UTF-8'?>\n<ComicInfo xmlns:xsd='http://www.w3.org/2001/XMLSchema' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>\n")
+            for key, value in kwargs.items():
+                value = str(value).replace("&", "&amp;") \
+                            .replace("<", "&lt;") \
+                            .replace(">", "&gt;") \
+                            .replace('"', "&quot;") \
+                            .replace("'", "&apos;")
+                f.write(f"\t<{key}>{value}</{key}>\n")
+            f.write("</ComicInfo>")
 
 @Hook.task_finished('ComicInfo.xml')
 def hook_comic_info(cw):
@@ -40,10 +43,10 @@ def hook_comic_info(cw):
         return
 
     pages_total = int([i for i in cw.msgs if i.startswith('imgs:')][0].split(': ')[1])
-    pages_dir = len(os.listdir(cw.dir))
+    pages_dir = sum(1 for i in os.listdir(cw.dir)if i.lower().endswith(img_ext))
 
     if pages_total != pages_dir:
-        return
+        raise Exception("Not all images are available")
 
     language_iso = languages.get(language, "")
 
@@ -60,5 +63,5 @@ def hook_comic_info(cw):
         Format=type_,
         Characters=characters,
         Teams=groups,
-        Tags=tags,
+        Tags=tags
     )
