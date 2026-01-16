@@ -34,7 +34,7 @@ def write_comic_info(path, **kwargs):
 
 @Hook.task_finished('ComicInfo.xml')
 def hook_comic_info(cw):
-    if cw.type not in ('hitomi', 'ehen') or cw.gal is None:
+    if cw.type not in ('hitomi', 'ehen') or not os.path.exists(cw.dir):
         return
 
     data = list(line.split(': ', 1)[1].strip() for line in str(cw.gal).strip().split('\n') if ': ' in line)
@@ -74,3 +74,4 @@ def hook_comic_info(cw):
         with zipfile.ZipFile(zip_file, 'a') as zipf:
             if "ComicInfo.xml" not in zipf.namelist():
                 zipf.write(comic_info_dir, arcname="ComicInfo.xml")
+
