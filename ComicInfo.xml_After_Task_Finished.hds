@@ -4,6 +4,7 @@
 
 from utils import Hook
 import os
+import zipfile
 
 languages = {
     "Japanese": "ja", "Chinese": "zh", "Korean": "ko", "Burmese": "my", "Thai": "th", "Persian": "fa",
@@ -65,3 +66,11 @@ def hook_comic_info(cw):
         Teams=groups,
         Tags=tags
     )
+
+    for f in (".cbz", ".zip"):
+        zip_file = cw.dir + f
+        if not os.path.exists(zip_file):
+            continue
+        with zipfile.ZipFile(zip_file, 'a') as zipf:
+            if "ComicInfo.xml" not in zipf.namelist():
+                zipf.write(comic_info_dir, arcname="ComicInfo.xml")
